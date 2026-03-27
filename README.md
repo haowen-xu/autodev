@@ -11,6 +11,12 @@
 - 执行方式：调用 `codex exec`（支持上下文续跑、超时与重试）。
 - Git 支持：可选 `worktree` 模式，支持自动提交、合并与推送。
 
+## 文档入口
+
+- Agent 导航: `AGENTS.md`
+- 文档总览: `docs/README.md`
+- Python 代码风格: `docs/code-style/python.md`
+
 ## 用法
 
 ### 安装（本地开发）

@@ -11,6 +11,12 @@ English | [中文](./README.md)
 - Execution: calls `codex exec` with thread resume, timeout, and retry support.
 - Git support: optional `worktree` mode with automated commit/merge/push flow.
 
+## Documentation Entry
+
+- Agent navigation: `AGENTS.md`
+- Docs overview: `docs/README.md`
+- Python code style: `docs/code-style/python.md`
+
 ## Usage
 
 ### Install (local dev)
