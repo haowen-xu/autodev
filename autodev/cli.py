@@ -34,9 +34,9 @@ from .orchestrator import run
 )
 @click.option(
     "--merge/--no-merge",
-    default=False,
+    default=True,
     show_default=True,
-    help="worktree 模式：--merge 将 worktree 分支合并到主分支；--no-merge（默认）将主分支合并到 worktree 并推送 worktree 分支。非 worktree 模式忽略此选项。",
+    help="worktree 模式：--merge（默认）将 worktree 分支合并到主分支；--no-merge 将主分支合并到 worktree 并推送 worktree 分支。非 worktree 模式忽略此选项。",
 )
 @click.option("--sandbox/--no-sandbox", default=False, show_default=True)
 @click.option(
@@ -47,7 +47,6 @@ from .orchestrator import run
     help="计划阶段最大循环轮次。",
 )
 @click.option(
-    "-M",
     "--max-iteration",
     type=click.IntRange(1),
     default=5,

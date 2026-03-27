@@ -22,24 +22,34 @@ pip install -e .
 ### 查看帮助
 
 ```bash
+# 始终可用（推荐）
+python -m autodev --help
+
+# 若当前环境 PATH 已包含对应 venv/bin
 autodev --help
 ```
 
 ### 基本执行
 
 ```bash
+# 始终可用（推荐）
+python -m autodev -P docs/feature.md
+
+# 若 autodev 命令可用
 autodev -P docs/feature.md
 ```
+
+若 `pip install -e .` 后仍提示 `autodev: command not found`，通常是当前 shell 没有把安装环境的 `bin` 目录加入 `PATH`。可优先使用 `python -m autodev` 启动，或切换到正确的虚拟环境后再执行 `autodev`。
 
 ### 常见参数
 
 - `-P, --plan-file`：计划文件路径（必填）。
 - `-T, --work-tree`：启用独立 `git worktree`。
-- `--merge/--no-merge`：worktree 模式下是否把分支合并回主分支。
+- `--merge/--no-merge`：worktree 模式下是否把分支合并回主分支（默认 `--merge`）。
 - `--push/--no-push`：流程结束后是否自动推送。
 - `--dry-run`：仅打印将执行的命令与提示词。
 - `--max-plan-iteration`：计划阶段最大循环次数。
-- `-M, --max-iteration`：开发-审查外层循环次数。
+- `--max-iteration`：开发-审查外层循环次数。
 - `--max-dev-iteration`：单轮开发最大连续次数。
 - `--max-review-iteration`：单轮审查最大连续次数。
 - `--max-arbitration-iteration`：仲裁最大轮次。
@@ -53,14 +63,17 @@ autodev -P docs/feature.md
 - 由 `*.plan.md` 派生初始 `*.dev.md` 与 `*.review.md`（若已存在则保留）。
 
 2. 开发-审查阶段
-- dev 代理按清单实现、验证并更新 `*.dev.md`。
+- dev 代理按清单实现、验证并更新 `*.dev.md`。  
+  当 dev agent 回答末尾为 `还需要继续开发` 时，不是终态，会继续 dev 内层循环（最多 `--max-dev-iteration` 次，默认 `100`）；当回答末尾为 `所有开发已完成` 才进入 review。
 - review 代理独立验收并更新 `*.review.md`，结果为：
   - `审查通过`
   - `审查不通过`
   - `审查未完成`
+  - `审查发现需要仲裁者`
+  其中 `审查未完成` 不是终态：会在当前开发轮次内继续 review 内层循环（最多 `--max-review-iteration` 次，默认 `5`）。
 
 3. 仲裁阶段
-- 当 review 主动要求仲裁或系统检测连续冲突时，进入 arbitrator。
+- 当 review 输出 `审查发现需要仲裁者` 或系统检测连续冲突时，进入 arbitrator。
 - 仲裁者可重写 dev/review 清单，并输出：
   - `仲裁者认为开发完成`
   - `仲裁者认为需要继续开发`
