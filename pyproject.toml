@@ -21,3 +21,6 @@ include-package-data = true
 
 [tool.setuptools.packages.find]
 include = ["autodev*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

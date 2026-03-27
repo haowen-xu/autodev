@@ -60,6 +60,17 @@ If `autodev: command not found` appears after `pip install -e .`, your shell PAT
 - `--max-review-iteration`: max review loop count per outer round.
 - `--max-arbitration-iteration`: max arbitration rounds.
 
+### Test Gates
+
+```bash
+.venv/bin/python scripts/check_test_gates.py
+```
+
+Gate requirements:
+
+- Total coverage `>= 80%`
+- No logic code file can have `0` coverage (see `scripts/check_test_gates.py`)
+
 ## Main Loop
 
 The runtime loop is aligned with implementation:

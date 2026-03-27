@@ -60,6 +60,17 @@ autodev -P docs/feature.md
 - `--max-review-iteration`：单轮审查最大连续次数。
 - `--max-arbitration-iteration`：仲裁最大轮次。
 
+### 测试门禁
+
+```bash
+.venv/bin/python scripts/check_test_gates.py
+```
+
+门禁要求：
+
+- 总覆盖率 `>= 80%`
+- 有逻辑的代码文件不能 `0` 覆盖（规则见 `scripts/check_test_gates.py`）
+
 ## 主循环
 
 主循环与代码实现保持一致：
