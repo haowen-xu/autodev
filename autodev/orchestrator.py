@@ -22,7 +22,7 @@ from .constants import (
 )
 from .context import build_timestamped_context_file
 from .dev import build_dev_prompt, normalize_dev_answer
-from .git_tools import ensure_clean_and_committed_for_worktree, resolve_repo_root, setup_worktree
+from .git_tools import resolve_repo_root, setup_worktree
 from .logging_utils import setup_logger
 from .merge import build_merge_prompt
 from .plan import build_plan_prompt
@@ -57,6 +57,23 @@ def run(
         return 2
 
     plan_stem = plan_file_input.stem
+    source_plan_file = plan_file_input
+    source_plan_digest = file_digest(source_plan_file)
+    if source_plan_digest is None:
+        logger.error("无法读取原始计划文件: {}", source_plan_file)
+        return 2
+
+    def ensure_source_plan_unchanged(stage_name: str) -> bool:
+        current_digest = file_digest(source_plan_file)
+        if current_digest != source_plan_digest:
+            logger.error(
+                "[执行器] 检测到原始计划文件被修改（禁止）。阶段={} 文件={}",
+                stage_name,
+                source_plan_file,
+            )
+            return False
+        return True
+
     autodev_dir = work_dir.resolve() / plan_stem
     context_dir = autodev_dir / "context"
     context_dir.mkdir(parents=True, exist_ok=True)
@@ -64,39 +81,26 @@ def run(
 
     dev_cwd: Path | None = None
     worktree_branch: str | None = None
-    plan_file = plan_file_input
     if use_worktree:
         repo_root = resolve_repo_root()
         if repo_root is None:
             logger.error("无法获取主仓库根目录")
             return 2
-        ready, relative_plan = ensure_clean_and_committed_for_worktree(repo_root, plan_file_input)
-        if not ready or relative_plan is None:
-            return 2
 
         worktree_path = autodev_dir / "worktree"
         worktree_branch = f"autodev/{plan_stem}"
-        setup_worktree(worktree_path, worktree_branch)
+        setup_worktree(worktree_path, worktree_branch, repo_root=repo_root)
         dev_cwd = worktree_path
 
-        worktree_plan = (worktree_path / relative_plan).resolve()
-        if not worktree_plan.exists():
-            logger.error(
-                "worktree 中缺少计划文件：{}。可能是计划文件未提交到主工作树，请先提交后重试。",
-                worktree_plan,
-            )
-            return 2
-        plan_file = worktree_plan
-
-    plan_output_file = plan_file.with_suffix(".plan.md")
-    dev_file = plan_file.with_suffix(".dev.md")
-    review_file = plan_file.with_suffix(".review.md")
-    log_file = plan_file.with_suffix(".log")
+    plan_output_file = context_dir / f"{plan_stem}.plan.md"
+    dev_file = context_dir / f"{plan_stem}.dev.md"
+    review_file = context_dir / f"{plan_stem}.review.md"
+    log_file = context_dir / f"{plan_stem}.log"
 
     setup_logger(log_file)
     logger.info(
         "[执行器] 开始: 计划输入={} 计划输出={} dev={} review={} 工作目录={} worktree={} merge_to_main={} push={} 沙箱={} 开发-审查最大轮次={} 内层开发最大轮次={} 每轮最大审查轮次={} 最大仲裁轮次={} 演练={}",
-        plan_file,
+        source_plan_file,
         plan_output_file,
         dev_file,
         review_file,
@@ -118,7 +122,7 @@ def run(
         plan_done = False
         for p in range(1, max_plan_iteration + 1):
             logger.info("[执行器] ══ 计划轮次 {}/{} ══", p, max_plan_iteration)
-            prompt = build_plan_prompt(plan_file, plan_output_file, p, max_plan_iteration)
+            prompt = build_plan_prompt(source_plan_file, plan_output_file, p, max_plan_iteration)
             rc, out, _ = run_stage(
                 codex_bin,
                 sandbox,
@@ -132,6 +136,8 @@ def run(
             )
             if rc != 0:
                 return rc
+            if not dry_run and not ensure_source_plan_unchanged("计划"):
+                return 1
             if dry_run:
                 continue
             _, last_message = parse_jsonl_for_thread_and_last_message(out)
@@ -175,7 +181,9 @@ def run(
                     max_dev_iteration,
                 )
                 review_before = file_digest(review_file)
-                dev_prompt = build_dev_prompt(plan_file, dev_file, review_file, d, max_dev_iteration)
+                dev_prompt = build_dev_prompt(
+                    source_plan_file, dev_file, review_file, d, max_dev_iteration
+                )
                 rc, dev_out, _ = run_stage(
                     codex_bin,
                     sandbox,
@@ -189,6 +197,8 @@ def run(
                 )
                 if rc != 0:
                     return rc
+                if not dry_run and not ensure_source_plan_unchanged("开发"):
+                    return 1
 
                 if dry_run:
                     dev_status = DEV_CONTINUE
@@ -223,7 +233,7 @@ def run(
                     r,
                     max_review_iteration,
                 )
-                review_prompt = build_review_prompt(plan_file, dev_file, review_file)
+                review_prompt = build_review_prompt(source_plan_file, dev_file, review_file)
                 rc, out, _ = run_stage(
                     codex_bin,
                     sandbox,
@@ -237,6 +247,8 @@ def run(
                 )
                 if rc != 0:
                     return rc
+                if not dry_run and not ensure_source_plan_unchanged("审查"):
+                    return 1
 
                 if dry_run:
                     review_final = REVIEW_INCOMPLETE
@@ -301,7 +313,7 @@ def run(
         logger.info("[执行器] 进入仲裁阶段")
         arbitrator_ctx = build_timestamped_context_file(context_dir, "arbitrator")
         arbitrator_prompt = build_arbitrator_prompt(
-            plan_file,
+            source_plan_file,
             dev_file,
             review_file,
             a,
@@ -320,6 +332,8 @@ def run(
         )
         if rc != 0:
             return rc
+        if not dry_run and not ensure_source_plan_unchanged("仲裁"):
+            return 1
         _, arbitrator_last_message = parse_jsonl_for_thread_and_last_message(out)
         arbitrator_result = normalize_arbitrator_answer(arbitrator_last_message, out)
         logger.info("[执行器] 仲裁结果: {}", arbitrator_result)
@@ -335,7 +349,7 @@ def run(
 
     logger.info("[执行器] ══ 阶段: 合并 ══")
     merge_prompt = build_merge_prompt(
-        plan_file,
+        source_plan_file,
         dev_file,
         push,
         worktree_branch=worktree_branch,

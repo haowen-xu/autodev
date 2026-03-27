@@ -7,7 +7,7 @@ English | [中文](./README.md)
 ## Overview
 
 - Input: one plan file (`-P/--plan-file`).
-- Output: derived checklist files (`*.plan.md`, `*.dev.md`, `*.review.md`) and logs (`*.log`).
+- Output: derived checklist files (`*.plan.md`, `*.dev.md`, `*.review.md`) and logs (`*.log`), all written under `work-dir/<plan_stem>/context/`.
 - Execution: calls `codex exec` with thread resume, timeout, and retry support.
 - Git support: optional `worktree` mode with automated commit/merge/push flow.
 
@@ -59,8 +59,9 @@ If `autodev: command not found` appears after `pip install -e .`, your shell PAT
 The runtime loop is aligned with implementation:
 
 1. Plan stage
-- If `*.plan.md` does not exist, run plan iterations until `全部计划工作已完成`.
-- Generate initial `*.dev.md` and `*.review.md` from `*.plan.md` if missing.
+- If `work-dir/<plan_stem>/context/*.plan.md` does not exist, run plan iterations until `全部计划工作已完成`.
+- Generate initial `*.dev.md` and `*.review.md` from that `*.plan.md` if missing.
+- The original plan file is read-only; all changes must go into derived `.md` files only.
 
 2. Dev-review stage
 - Dev agent implements and updates `*.dev.md`.  

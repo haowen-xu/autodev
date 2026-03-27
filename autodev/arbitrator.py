@@ -22,6 +22,7 @@ def build_arbitrator_prompt(
         f"当前仲裁轮次: {arbitration_round}/{max_arbitration_iteration}\n"
         "要求：\n"
         "1) 以计划文件为唯一基准，重新审视 dev 与 review 是否准确反映真实进度。\n"
+        "   - 原始计划文件只读，严禁任何修改。\n"
         "2) 你可以直接修改 dev 与 review，不限于勾选/取消勾选；必要时可彻底重写两份文件。\n"
         "3) dev 与 review 的任务项必须严格一一对应（同一任务在两份文件中都要存在且可相互映射），"
         "禁止只改其中一份导致编号/条目错位。\n"

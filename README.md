@@ -7,7 +7,7 @@
 ## 概述
 
 - 输入：一个计划文件（`-P/--plan-file`）。
-- 输出：派生的计划与检查清单文件（`*.plan.md`, `*.dev.md`, `*.review.md`）以及日志（`*.log`）。
+- 输出：派生的计划与检查清单文件（`*.plan.md`, `*.dev.md`, `*.review.md`）以及日志（`*.log`），统一写入 `work-dir/<plan_stem>/context/`。
 - 执行方式：调用 `codex exec`（支持上下文续跑、超时与重试）。
 - Git 支持：可选 `worktree` 模式，支持自动提交、合并与推送。
 
@@ -59,8 +59,9 @@ autodev -P docs/feature.md
 主循环与代码实现保持一致：
 
 1. 计划阶段
-- 若不存在 `*.plan.md`，进入 plan 循环，直到输出“全部计划工作已完成”。
-- 由 `*.plan.md` 派生初始 `*.dev.md` 与 `*.review.md`（若已存在则保留）。
+- 若 `work-dir/<plan_stem>/context/*.plan.md` 不存在，进入 plan 循环，直到输出“全部计划工作已完成”。
+- 由该 `*.plan.md` 派生初始 `*.dev.md` 与 `*.review.md`（若已存在则保留）。
+- 原始 plan 文件始终只读，所有改动仅允许写入派生 `.md` 文件。
 
 2. 开发-审查阶段
 - dev 代理按清单实现、验证并更新 `*.dev.md`。  
