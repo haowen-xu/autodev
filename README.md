@@ -16,6 +16,7 @@
 - Agent 导航: `AGENTS.md`
 - 文档总览: `docs/README.md`
 - Python 代码风格: `docs/code-style/python.md`
+- Orchestrator 高光: `docs/highlights/ochestrator.md`
 
 ## 用法
 
