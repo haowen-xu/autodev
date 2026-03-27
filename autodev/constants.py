@@ -1,0 +1,11 @@
+"""Shared status constants used by all agents and orchestrator."""
+
+PLAN_DONE = "全部计划工作已完成"
+REVIEW_PASS = "审查通过"
+REVIEW_FAIL = "审查不通过"
+REVIEW_INCOMPLETE = "审查未完成"
+REVIEW_NEED_ARBITRATOR = "审查发现需要仲裁者"
+DEV_DONE = "所有开发已完成"
+DEV_CONTINUE = "还需要继续开发"
+ARBITRATOR_DONE = "仲裁者认为开发完成"
+ARBITRATOR_CONTINUE = "仲裁者认为需要继续开发"

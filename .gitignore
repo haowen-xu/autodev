@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+.venv/
+venv/
+
+# Packaging
+build/
+dist/
+*.egg-info/
+
+# Test / tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# IDE / OS
+.DS_Store
+.idea/
+.vscode/
+
+# autodev runtime artifacts
+.autodev/
+*.log
