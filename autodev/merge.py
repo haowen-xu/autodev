@@ -38,6 +38,11 @@ def build_merge_prompt(
                 "   若产生合并冲突，逐文件解决后 git add + git commit 完成合并。\n"
                 "   合并完成后执行 lint 和测试验证，若失败则修复后再 commit。\n"
             )
+            n += 1
+            steps.append(
+                f"{n}) 合并完成后，在主仓库目录执行 `git worktree remove {worktree_path}` 删除该 worktree。\n"
+                "   若提示 worktree 非干净，先确认改动已提交，再清理后重试。\n"
+            )
         else:
             n += 1
             steps.append(

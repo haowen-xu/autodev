@@ -55,9 +55,17 @@ def test_prompt_builders_and_normalizers(tmp_path: Path) -> None:
     assert arbitrator.normalize_arbitrator_answer(constants.ARBITRATOR_DONE, "") == constants.ARBITRATOR_DONE
     assert arbitrator.normalize_arbitrator_answer(None, "") == constants.ARBITRATOR_CONTINUE
 
-    merge_prompt = merge.build_merge_prompt(p, d, push=True, worktree_branch="b1", worktree_path=tmp_path)
+    merge_prompt = merge.build_merge_prompt(
+        p,
+        d,
+        push=True,
+        worktree_branch="b1",
+        worktree_path=tmp_path,
+        merge_to_main=True,
+    )
     assert "git push" in merge_prompt
     assert str(p) in merge_prompt
+    assert "git worktree remove" in merge_prompt
 
 
 def test_checklists_and_digest(tmp_path: Path) -> None:

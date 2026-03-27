@@ -75,6 +75,8 @@ def test_orchestrator_non_dry_success(tmp_path: Path, monkeypatch) -> None:  # t
         max_retry=0,
     )
     assert rc == 0
+    assert (tmp_path / ".autodev" / "task" / "context" / "task.log").exists()
+    assert not (tmp_path / "task.log").exists()
 
 
 def test_orchestrator_non_dry_arbitrator_path(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
