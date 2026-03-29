@@ -29,6 +29,8 @@ from .plan import build_plan_prompt
 from .review import build_review_prompt, normalize_review_answer
 from .runner import run_stage
 
+DEV_REVIEW_CONFLICT_STREAK_FOR_ARBITRATION = 3
+
 
 def run(
     plan_file: Path,
@@ -293,7 +295,10 @@ def run(
             else:
                 dev_done_but_review_fail_streak = 0
 
-            if review_reported_need_arbitrator or dev_done_but_review_fail_streak >= 2:
+            if (
+                review_reported_need_arbitrator
+                or dev_done_but_review_fail_streak >= DEV_REVIEW_CONFLICT_STREAK_FOR_ARBITRATION
+            ):
                 logger.warning("[执行器] {}", REVIEW_NEED_ARBITRATOR)
                 need_arbitration = True
                 break
@@ -337,10 +342,10 @@ def run(
         _, arbitrator_last_message = parse_jsonl_for_thread_and_last_message(out)
         arbitrator_result = normalize_arbitrator_answer(arbitrator_last_message, out)
         logger.info("[执行器] 仲裁结果: {}", arbitrator_result)
+        dev_done_but_review_fail_streak = 0
         if arbitrator_result == ARBITRATOR_DONE:
             review_passed = True
             break
-        dev_done_but_review_fail_streak = 0
         logger.info("[执行器] 仲裁要求继续开发，进入下一仲裁轮次")
 
     if not dry_run and not review_passed:

@@ -123,6 +123,55 @@ def test_orchestrator_non_dry_arbitrator_path(tmp_path: Path, monkeypatch) -> No
     assert rc == 0
 
 
+def test_orchestrator_arbitration_resets_conflict_streak(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    plan_file = tmp_path / "task.md"
+    plan_file.write_text("# task\n", encoding="utf-8")
+    state = {"review_count": 0, "arbitrator_count": 0}
+
+    def fake_run_stage(codex_bin, sandbox, prompt, stage_name, context_file, timeout_sec, max_retry, dry_run, cwd=None):  # type: ignore[no-untyped-def]
+        if stage_name == "计划":
+            out_path = Path(prompt.split("- 输出文件: ", 1)[1].splitlines()[0].strip())
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            out_path.write_text("# plan\n\n- [ ] item\n", encoding="utf-8")
+            return 0, _jsonl_message(constants.PLAN_DONE), ""
+        if stage_name == "开发":
+            return 0, _jsonl_message(constants.DEV_DONE), ""
+        if stage_name == "审查":
+            state["review_count"] += 1
+            return 0, _jsonl_message(constants.REVIEW_FAIL), ""
+        if stage_name == "仲裁":
+            state["arbitrator_count"] += 1
+            if state["arbitrator_count"] == 1:
+                return 0, _jsonl_message(constants.ARBITRATOR_CONTINUE), ""
+            return 0, _jsonl_message(constants.ARBITRATOR_DONE), ""
+        return 0, _jsonl_message("ok"), ""
+
+    monkeypatch.setattr(orchestrator, "run_stage", fake_run_stage)
+    monkeypatch.setattr(orchestrator.shutil, "which", lambda _: "/bin/echo")
+    rc = orchestrator.run(
+        plan_file=plan_file,
+        work_dir=tmp_path / ".autodev",
+        use_worktree=False,
+        merge_to_main=True,
+        sandbox=False,
+        max_plan_iteration=1,
+        max_iteration=3,
+        max_dev_iteration=1,
+        max_review_iteration=1,
+        max_arbitration_iteration=2,
+        push=False,
+        dry_run=False,
+        timeout_sec=1,
+        codex_bin="codex",
+        max_retry=0,
+    )
+    assert rc == 0
+    assert state["arbitrator_count"] == 2
+    # With threshold=3 and reset after arbitration, second arbitration is reached
+    # only after three more review failures in round 2.
+    assert state["review_count"] == 6
+
+
 def test_orchestrator_dev_modifies_review_blocked(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
     plan_file = tmp_path / "task.md"
     plan_file.write_text("# task\n", encoding="utf-8")
