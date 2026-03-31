@@ -1,123 +1,128 @@
 [English](./README.en.md) | 中文
 
-# autodev
+# autodev：全自动开发流程编排工具
 
-`autodev` 是一个自动化开发流程编排工具。它通过 `plan -> dev -> review -> arbitrator -> merge` 的闭环循环，驱动多代理协作，直到任务通过质量门禁并完成合并。
+## 这是什么？
 
-## 概述
+一句话：**你写一个需求文档，它帮你把代码开发完。**
 
-- 输入：一个计划文件（`-P/--plan-file`）。
-- 输出：派生的计划与检查清单文件（`*.plan.md`, `*.dev.md`, `*.review.md`）以及日志（`*.log`），统一写入 `work-dir/<plan_stem>/context/`。
-- 执行方式：调用 `codex exec`（支持上下文续跑、超时与重试）。
-- Git 支持：可选 `worktree` 模式，支持自动提交、合并与推送。
+autodev 是一个多智能体协作脚本。你把功能需求写成一个 Markdown 文件，交给它，它会自动：
 
-## 文档入口
+1. **规划**：把你的需求拆解成一步一步可执行的开发任务
+2. **开发**：dev agent 照着任务清单写代码
+3. **审查**：review agent 独立验收，检查代码有没有按要求做到位
+4. **仲裁**：如果 dev 和 review 反复对不上，仲裁者出面调解
+5. **合并**：验收通过后，自动提交、合并、推送
 
-- Agent 导航: `AGENTS.md`
-- 文档总览: `docs/README.md`
-- Python 代码风格: `docs/code-style/python.md`
-- Orchestrator 高光: `docs/highlights/ochestrator.md`
+---
 
-## 用法
+## 核心机制
 
-### 安装（本地开发）
+### Plan → Dev → Review 闭环
+
+```
+你的需求文档 (xxx.md)
+        ↓
+   [plan agent]  ← 把需求细化为可执行步骤
+        ↓
+  ┌─────────────────────────────────────┐
+  │  [dev agent]   按清单开发            │
+  │       ↕  (disagreement → arbitrator) │
+  │  [review agent] 独立审查             │
+  └─────────────────────────────────────┘
+        ↓ 审查通过
+   [merge]  提交 / 合并 / 推送
+```
+
+**dev 和 review 各自维护一份 todo 清单**（内容一一对应），互不干扰地推进。
+
+- dev 认为"开发完成"→ 交给 review 验收
+- review 认为"没做完"→ 打回给 dev 继续
+- 连续两次都对不上 → **仲裁者出场**
+
+### 仲裁者（Arbitrator）
+
+仲裁者是最终裁判。它会：
+
+- 阅读 dev 和 review 双方的清单和分歧
+- 要么**改写双方的清单**，让 dev 重新开发
+- 要么**判定开发已完成**，跳过争议直接进入合并
+
+仲裁最多进行 **5 轮**，防止死循环。
+
+---
+
+## 快速上手
+
+### 1. 安装
 
 ```bash
-pip install -e .
+pip install git+https://github.com/haowen-xu/autodev.git
 ```
 
-### 查看帮助
+### 2. 准备需求文档
+
+在项目里写一个 Markdown 文件，描述你要开发什么功能。格式可以参考 `docs/plans/` 目录下的示例。
+
+> **前提**：你的代码库需要有 `docs/` 文档体系和 `AGENTS.md` 文件，用来给各个 agent 提供项目上下文。可以参考本项目的写法。
+
+### 3. 运行
 
 ```bash
-# 始终可用（推荐）
-python -m autodev --help
+# 基本用法
+autodev -P docs/my-feature.md
 
-# 若当前环境 PATH 已包含对应 venv/bin
-autodev --help
+# 开独立 worktree（推荐：不影响主干，可并行开多个功能）
+autodev -P docs/my-feature.md -T
+
+# worktree 完成后自动合并回主分支
+autodev -P docs/my-feature.md -T --merge
 ```
 
-### 基本执行
+---
 
-```bash
-# 始终可用（推荐）
-python -m autodev -P docs/feature.md
+## 并行开发多个功能
 
-# 若 autodev 命令可用
-autodev -P docs/feature.md
-```
+`-T` 参数会在同一个代码库开一个独立的 `git worktree`，这意味着：
 
-若 `pip install -e .` 后仍提示 `autodev: command not found`，通常是当前 shell 没有把安装环境的 `bin` 目录加入 `PATH`。可优先使用 `python -m autodev` 启动，或切换到正确的虚拟环境后再执行 `autodev`。
+- 不同功能互不干扰
+- 可以**同时跑多个 autodev 进程**，并行开发不同 feature
+- 每个 worktree 完成后加 `--merge` 自动合并回主干
 
-### 常见参数
+---
 
-- `-P, --plan-file`：计划文件路径（必填）。
-- `-T, --work-tree`：启用独立 `git worktree`。
-- `-M, --merge/--no-merge`：worktree 模式下是否把分支合并回主分支（默认 `--no-merge`）。
-- `--push/--no-push`：流程结束后是否自动推送。
-- `--dry-run`：仅打印将执行的命令与提示词。
-- `--max-plan-iteration`：计划阶段最大循环次数。
-- `--max-iteration`：开发-审查外层循环次数。
-- `--max-dev-iteration`：单轮开发最大连续次数。
-- `--max-review-iteration`：单轮审查最大连续次数。
-- `--max-arbitration-iteration`：仲裁最大轮次。
+## 前提条件
 
-### 测试门禁
+autodev 运行时，各 agent 需要读懂你的项目。你的代码库应当包含：
 
-```bash
-.venv/bin/python scripts/check_test_gates.py
-```
+| 文件/目录 | 用途 |
+|---|---|
+| `AGENTS.md` | 告诉 agent 这个项目是什么、怎么开发、有哪些约定 |
+| `docs/` | 架构说明、代码规范、开发计划等 |
 
-门禁要求：
+可以参考本项目的 `AGENTS.md` 和 `docs/` 目录作为模板。
 
-- 总覆盖率 `>= 80%`
-- 有逻辑的代码文件不能 `0` 覆盖（规则见 `scripts/check_test_gates.py`）
+---
 
-## 主循环
+## 常用参数速查
 
-主循环与代码实现保持一致：
+| 参数 | 说明 |
+|---|---|
+| `-P, --plan-file` | 需求文档路径（必填） |
+| `-T, --work-tree` | 在独立 git worktree 中运行 |
+| `-M, --merge` | worktree 完成后合并回主分支 |
+| `--push` | 完成后自动推送到远端 |
+| `--dry-run` | 只打印命令和提示词，不实际执行 |
+| `--max-arbitration-iteration` | 仲裁最大轮次（默认 5） |
 
-1. 计划阶段
-- 若 `work-dir/<plan_stem>/context/*.plan.md` 不存在，进入 plan 循环，直到输出“全部计划工作已完成”。
-- 由该 `*.plan.md` 派生初始 `*.dev.md` 与 `*.review.md`（若已存在则保留）。
-- 原始 plan 文件始终只读，所有改动仅允许写入派生 `.md` 文件。
+完整参数列表：`autodev --help`
 
-2. 开发-审查阶段
-- dev 代理按清单实现、验证并更新 `*.dev.md`。  
-  当 dev agent 回答末尾为 `还需要继续开发` 时，不是终态，会继续 dev 内层循环（最多 `--max-dev-iteration` 次，默认 `100`）；当回答末尾为 `所有开发已完成` 才进入 review。
-- review 代理独立验收并更新 `*.review.md`，结果为：
-  - `审查通过`
-  - `审查不通过`
-  - `审查未完成`
-  - `审查发现需要仲裁者`
-  其中 `审查未完成` 不是终态：会在当前开发轮次内继续 review 内层循环（最多 `--max-review-iteration` 次，默认 `5`）。
+---
 
-3. 仲裁阶段
-- 当 review 输出 `审查发现需要仲裁者` 或系统检测连续冲突时，进入 arbitrator。
-- 仲裁者可重写 dev/review 清单，并输出：
-  - `仲裁者认为开发完成`
-  - `仲裁者认为需要继续开发`
+## 文档导航
 
-4. 合并阶段
-- 审查通过后，进入 merge 阶段执行提交/合并/推送（取决于参数）。
-
-## 目录结构
-
-```text
-autodev/
-  __init__.py
-  __main__.py
-  cli.py
-  orchestrator.py
-  plan.py
-  dev.py
-  review.py
-  arbitrator.py
-  merge.py
-  runner.py
-  codex_io.py
-  context.py
-  checklists.py
-  git_tools.py
-  logging_utils.py
-  constants.py
-```
+- Agent 规则与约束：`docs/agents/index.md`
+- 架构说明：`docs/arch/index.md`
+- Python 代码风格：`docs/code-style/python.md`
+- 审查规则：`docs/review/index.md`
+- Orchestrator 实现细节：`docs/highlights/ochestrator.md`

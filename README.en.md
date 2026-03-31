@@ -1,100 +1,128 @@
 English | [中文](./README.md)
 
-# autodev
+# autodev: Fully Automated Development Workflow
 
-`autodev` is an automated development workflow orchestrator. It drives a multi-agent loop of `plan -> dev -> review -> arbitrator -> merge` until quality gates pass and changes are merged.
+## What is this?
 
-## Overview
+In one line: **you write a requirements doc, it writes the code.**
 
-- Input: one plan file (`-P/--plan-file`).
-- Output: derived checklist files (`*.plan.md`, `*.dev.md`, `*.review.md`) and logs (`*.log`), all written under `work-dir/<plan_stem>/context/`.
-- Execution: calls `codex exec` with thread resume, timeout, and retry support.
-- Git support: optional `worktree` mode with automated commit/merge/push flow.
+autodev is a multi-agent collaboration script. Write your feature requirements in a Markdown file, hand it over, and it will automatically:
 
-## Documentation Entry
+1. **Plan**: break down your requirements into executable development steps
+2. **Dev**: dev agent implements the tasks from the checklist
+3. **Review**: review agent independently validates that everything is done correctly
+4. **Arbitrate**: if dev and review keep disagreeing, an arbitrator steps in
+5. **Merge**: once review passes, commit / merge / push automatically
 
-- Agent navigation: `AGENTS.md`
-- Docs overview: `docs/README.md`
+---
+
+## How it works
+
+### Plan → Dev → Review loop
+
+```
+your requirements doc (xxx.md)
+        ↓
+   [plan agent]  ← breaks requirements into executable steps
+        ↓
+  ┌─────────────────────────────────────┐
+  │  [dev agent]    implements           │
+  │       ↕  (disagreement → arbitrator) │
+  │  [review agent] validates            │
+  └─────────────────────────────────────┘
+        ↓ review passed
+   [merge]  commit / merge / push
+```
+
+**dev and review each maintain their own todo checklist** (items correspond one-to-one), progressing independently.
+
+- dev says "done" → handed to review for validation
+- review says "not done" → sent back to dev
+- two consecutive disagreements → **arbitrator steps in**
+
+### Arbitrator
+
+The arbitrator is the final judge. It will:
+
+- Read both the dev and review checklists and the points of disagreement
+- Either **rewrite both checklists** and send dev back to work
+- Or **declare development complete** and proceed to merge
+
+Arbitration runs at most **5 rounds** to prevent infinite loops.
+
+---
+
+## Getting started
+
+### 1. Install
+
+```bash
+pip install git+https://github.com/haowen-xu/autodev.git
+```
+
+### 2. Prepare your requirements doc
+
+Write a Markdown file in your project describing the feature you want built. See `docs/plans/` for examples.
+
+> **Prerequisite**: your codebase needs a `docs/` documentation structure and an `AGENTS.md` file so the agents can understand your project. Use this project's setup as a reference.
+
+### 3. Run
+
+```bash
+# basic usage
+autodev -P docs/my-feature.md
+
+# isolated git worktree (recommended: keeps main branch clean, supports parallel runs)
+autodev -P docs/my-feature.md -T
+
+# auto-merge the worktree branch back to main when done
+autodev -P docs/my-feature.md -T --merge
+```
+
+---
+
+## Developing multiple features in parallel
+
+The `-T` flag creates an isolated `git worktree` within the same repository, which means:
+
+- Different features don't interfere with each other
+- You can **run multiple autodev processes simultaneously**, each on a different feature
+- Add `--merge` to each worktree run to auto-merge back to main when done
+
+---
+
+## Prerequisites
+
+When autodev runs, each agent needs to understand your project. Your codebase should include:
+
+| File/Directory | Purpose |
+|---|---|
+| `AGENTS.md` | Tells agents what the project is, how to develop it, and what conventions to follow |
+| `docs/` | Architecture docs, code style guides, development plans, etc. |
+
+Use this project's `AGENTS.md` and `docs/` as a template.
+
+---
+
+## Common options
+
+| Option | Description |
+|---|---|
+| `-P, --plan-file` | Path to requirements doc (required) |
+| `-T, --work-tree` | Run in an isolated git worktree |
+| `-M, --merge` | Merge worktree branch back to main when done |
+| `--push` | Push to remote after completion |
+| `--dry-run` | Print commands and prompts only, don't execute |
+| `--max-arbitration-iteration` | Max arbitration rounds (default: 5) |
+
+Full option list: `autodev --help`
+
+---
+
+## Documentation
+
+- Agent rules & constraints: `docs/agents/index.md`
+- Architecture overview: `docs/arch/index.md`
 - Python code style: `docs/code-style/python.md`
-
-## Usage
-
-### Install (local dev)
-
-```bash
-pip install -e .
-```
-
-### Help
-
-```bash
-# Always works (recommended)
-python -m autodev --help
-
-# If your current PATH includes the target venv/bin
-autodev --help
-```
-
-### Basic run
-
-```bash
-# Always works (recommended)
-python -m autodev -P docs/feature.md
-
-# If autodev is available on PATH
-autodev -P docs/feature.md
-```
-
-If `autodev: command not found` appears after `pip install -e .`, your shell PATH likely does not include the install environment's `bin` directory. Use `python -m autodev` directly, or activate the correct virtual environment first.
-
-### Common options
-
-- `-P, --plan-file`: plan file path (required).
-- `-T, --work-tree`: run in isolated `git worktree`.
-- `-M, --merge/--no-merge`: in worktree mode, whether to merge branch back to main (default: `--no-merge`).
-- `--push/--no-push`: push after success or not.
-- `--dry-run`: print commands/prompts only.
-- `--max-plan-iteration`: max plan loop count.
-- `--max-iteration`: max outer dev-review loop count.
-- `--max-dev-iteration`: max dev loop count per outer round.
-- `--max-review-iteration`: max review loop count per outer round.
-- `--max-arbitration-iteration`: max arbitration rounds.
-
-### Test Gates
-
-```bash
-.venv/bin/python scripts/check_test_gates.py
-```
-
-Gate requirements:
-
-- Total coverage `>= 80%`
-- No logic code file can have `0` coverage (see `scripts/check_test_gates.py`)
-
-## Main Loop
-
-The runtime loop is aligned with implementation:
-
-1. Plan stage
-- If `work-dir/<plan_stem>/context/*.plan.md` does not exist, run plan iterations until `全部计划工作已完成`.
-- Generate initial `*.dev.md` and `*.review.md` from that `*.plan.md` if missing.
-- The original plan file is read-only; all changes must go into derived `.md` files only.
-
-2. Dev-review stage
-- Dev agent implements and updates `*.dev.md`.  
-  If dev agent ends with `还需要继续开发`, this is not terminal and the inner dev loop continues (up to `--max-dev-iteration`, default `100`). It moves to review only when the ending token is `所有开发已完成`.
-- Review agent validates independently and updates `*.review.md` with one of:
-  - `审查通过`
-  - `审查不通过`
-  - `审查未完成`
-  - `审查发现需要仲裁者`
-  `审查未完成` is also non-terminal: review continues in the inner review loop (up to `--max-review-iteration`, default `5`) within the same outer round.
-
-3. Arbitration stage
-- Triggered when review outputs `审查发现需要仲裁者` or conflict streak is detected.
-- Arbitrator can rewrite dev/review checklists and returns:
-  - `仲裁者认为开发完成`
-  - `仲裁者认为需要继续开发`
-
-4. Merge stage
-- After passing review, merge stage performs commit/merge/push based on CLI flags.
+- Review rules: `docs/review/index.md`
+- Orchestrator internals: `docs/highlights/ochestrator.md`
