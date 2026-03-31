@@ -52,7 +52,7 @@ autodev -P docs/feature.md
 
 - `-P, --plan-file`：计划文件路径（必填）。
 - `-T, --work-tree`：启用独立 `git worktree`。
-- `--merge/--no-merge`：worktree 模式下是否把分支合并回主分支（默认 `--merge`）。
+- `-M, --merge/--no-merge`：worktree 模式下是否把分支合并回主分支（默认 `--no-merge`）。
 - `--push/--no-push`：流程结束后是否自动推送。
 - `--dry-run`：仅打印将执行的命令与提示词。
 - `--max-plan-iteration`：计划阶段最大循环次数。

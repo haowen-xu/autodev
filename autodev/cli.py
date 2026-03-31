@@ -33,10 +33,11 @@ from .orchestrator import run
     help="autodev 工作目录（存放 context、worktree 等）。",
 )
 @click.option(
+    "-M",
     "--merge/--no-merge",
-    default=True,
+    default=False,
     show_default=True,
-    help="worktree 模式：--merge（默认）将 worktree 分支合并到主分支；--no-merge 将主分支合并到 worktree 并推送 worktree 分支。非 worktree 模式忽略此选项。",
+    help="worktree 模式：--merge 将 worktree 分支合并到主分支；--no-merge（默认）将主分支合并到 worktree 并推送 worktree 分支。非 worktree 模式忽略此选项。",
 )
 @click.option("--sandbox/--no-sandbox", default=False, show_default=True)
 @click.option(

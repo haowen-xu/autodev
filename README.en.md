@@ -51,7 +51,7 @@ If `autodev: command not found` appears after `pip install -e .`, your shell PAT
 
 - `-P, --plan-file`: plan file path (required).
 - `-T, --work-tree`: run in isolated `git worktree`.
-- `--merge/--no-merge`: in worktree mode, whether to merge branch back to main (default: `--merge`).
+- `-M, --merge/--no-merge`: in worktree mode, whether to merge branch back to main (default: `--no-merge`).
 - `--push/--no-push`: push after success or not.
 - `--dry-run`: print commands/prompts only.
 - `--max-plan-iteration`: max plan loop count.
