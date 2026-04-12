@@ -100,6 +100,19 @@ from .orchestrator import run
     help="codex 可执行文件路径。",
 )
 @click.option(
+    "--model",
+    default="gpt-5.4",
+    show_default=True,
+    help="codex 使用的模型。",
+)
+@click.option(
+    "--thinking-effort",
+    type=click.Choice(["minimal", "low", "medium", "high", "xhigh"]),
+    default="medium",
+    show_default=True,
+    help="codex 的 thinking effort（映射到 model_reasoning_effort）。",
+)
+@click.option(
     "--max-retry",
     type=click.IntRange(0),
     default=10,
@@ -121,6 +134,8 @@ def cli(
     dry_run: bool,
     timeout_sec: int,
     codex_bin: str,
+    model: str,
+    thinking_effort: str,
     max_retry: int,
 ) -> None:
     raise SystemExit(
@@ -139,6 +154,8 @@ def cli(
             dry_run=dry_run,
             timeout_sec=timeout_sec,
             codex_bin=codex_bin,
+            model=model,
+            thinking_effort=thinking_effort,
             max_retry=max_retry,
         )
     )

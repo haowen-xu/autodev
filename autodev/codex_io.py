@@ -154,12 +154,21 @@ def parse_jsonl_for_thread_and_last_message(output: str) -> tuple[str | None, st
     return thread_id, last_message
 
 
-def build_exec_base_cmd(codex_bin: str, sandbox: bool) -> list[str]:
+def build_exec_base_cmd(
+    codex_bin: str,
+    sandbox: bool,
+    model: str,
+    thinking_effort: str,
+) -> list[str]:
     cmd = [
         codex_bin,
         "exec",
         "--skip-git-repo-check",
         "--json",
+        "--model",
+        model,
+        "-c",
+        f'model_reasoning_effort="{thinking_effort}"',
     ]
     if sandbox:
         cmd.append("--full-auto")
@@ -168,7 +177,13 @@ def build_exec_base_cmd(codex_bin: str, sandbox: bool) -> list[str]:
     return cmd
 
 
-def build_resume_cmd(codex_bin: str, thread_id: str, sandbox: bool) -> list[str]:
+def build_resume_cmd(
+    codex_bin: str,
+    thread_id: str,
+    sandbox: bool,
+    model: str,
+    thinking_effort: str,
+) -> list[str]:
     cmd = [
         codex_bin,
         "exec",
@@ -176,6 +191,10 @@ def build_resume_cmd(codex_bin: str, thread_id: str, sandbox: bool) -> list[str]
         thread_id,
         "--skip-git-repo-check",
         "--json",
+        "--model",
+        model,
+        "-c",
+        f'model_reasoning_effort="{thinking_effort}"',
     ]
     if sandbox:
         cmd.append("--full-auto")

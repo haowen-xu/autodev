@@ -47,6 +47,8 @@ def run(
     dry_run: bool,
     timeout_sec: int,
     codex_bin: str,
+    model: str,
+    thinking_effort: str,
     max_retry: int,
 ) -> int:
     if not dry_run and not shutil.which(codex_bin):
@@ -134,6 +136,8 @@ def run(
                 timeout_sec,
                 max_retry,
                 dry_run,
+                model=model,
+                thinking_effort=thinking_effort,
                 cwd=dev_cwd,
             )
             if rc != 0:
@@ -195,6 +199,8 @@ def run(
                     timeout_sec,
                     max_retry,
                     dry_run,
+                    model=model,
+                    thinking_effort=thinking_effort,
                     cwd=dev_cwd,
                 )
                 if rc != 0:
@@ -245,6 +251,8 @@ def run(
                     timeout_sec,
                     max_retry,
                     dry_run,
+                    model=model,
+                    thinking_effort=thinking_effort,
                     cwd=dev_cwd,
                 )
                 if rc != 0:
@@ -333,6 +341,8 @@ def run(
             timeout_sec,
             max_retry,
             dry_run,
+            model=model,
+            thinking_effort=thinking_effort,
             cwd=dev_cwd,
         )
         if rc != 0:
@@ -371,6 +381,8 @@ def run(
         timeout_sec,
         max_retry,
         dry_run,
+        model=model,
+        thinking_effort=thinking_effort,
         cwd=merge_cwd,
     )
     if rc != 0:

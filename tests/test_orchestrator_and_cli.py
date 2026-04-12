@@ -33,6 +33,8 @@ def test_orchestrator_dry_run_happy_path(tmp_path: Path) -> None:
         dry_run=True,
         timeout_sec=1,
         codex_bin="codex",
+        model="gpt-5.4",
+        thinking_effort="medium",
         max_retry=0,
     )
     assert rc == 0
@@ -42,7 +44,19 @@ def test_orchestrator_non_dry_success(tmp_path: Path, monkeypatch) -> None:  # t
     plan_file = tmp_path / "task.md"
     plan_file.write_text("# task\n", encoding="utf-8")
 
-    def fake_run_stage(codex_bin, sandbox, prompt, stage_name, context_file, timeout_sec, max_retry, dry_run, cwd=None):  # type: ignore[no-untyped-def]
+    def fake_run_stage(
+        codex_bin,
+        sandbox,
+        prompt,
+        stage_name,
+        context_file,
+        timeout_sec,
+        max_retry,
+        dry_run,
+        model,
+        thinking_effort,
+        cwd=None,
+    ):  # type: ignore[no-untyped-def]
         if stage_name == "计划":
             marker = "- 输出文件: "
             out_path = Path(prompt.split(marker, 1)[1].splitlines()[0].strip())
@@ -72,6 +86,8 @@ def test_orchestrator_non_dry_success(tmp_path: Path, monkeypatch) -> None:  # t
         dry_run=False,
         timeout_sec=1,
         codex_bin="codex",
+        model="gpt-5.4",
+        thinking_effort="medium",
         max_retry=0,
     )
     assert rc == 0
@@ -84,7 +100,19 @@ def test_orchestrator_non_dry_arbitrator_path(tmp_path: Path, monkeypatch) -> No
     plan_file.write_text("# task\n", encoding="utf-8")
     state = {"review_count": 0}
 
-    def fake_run_stage(codex_bin, sandbox, prompt, stage_name, context_file, timeout_sec, max_retry, dry_run, cwd=None):  # type: ignore[no-untyped-def]
+    def fake_run_stage(
+        codex_bin,
+        sandbox,
+        prompt,
+        stage_name,
+        context_file,
+        timeout_sec,
+        max_retry,
+        dry_run,
+        model,
+        thinking_effort,
+        cwd=None,
+    ):  # type: ignore[no-untyped-def]
         if stage_name == "计划":
             out_path = Path(prompt.split("- 输出文件: ", 1)[1].splitlines()[0].strip())
             out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -117,6 +145,8 @@ def test_orchestrator_non_dry_arbitrator_path(tmp_path: Path, monkeypatch) -> No
         dry_run=False,
         timeout_sec=1,
         codex_bin="codex",
+        model="gpt-5.4",
+        thinking_effort="medium",
         max_retry=0,
     )
     assert state["review_count"] >= 1
@@ -128,7 +158,19 @@ def test_orchestrator_arbitration_resets_conflict_streak(tmp_path: Path, monkeyp
     plan_file.write_text("# task\n", encoding="utf-8")
     state = {"review_count": 0, "arbitrator_count": 0}
 
-    def fake_run_stage(codex_bin, sandbox, prompt, stage_name, context_file, timeout_sec, max_retry, dry_run, cwd=None):  # type: ignore[no-untyped-def]
+    def fake_run_stage(
+        codex_bin,
+        sandbox,
+        prompt,
+        stage_name,
+        context_file,
+        timeout_sec,
+        max_retry,
+        dry_run,
+        model,
+        thinking_effort,
+        cwd=None,
+    ):  # type: ignore[no-untyped-def]
         if stage_name == "计划":
             out_path = Path(prompt.split("- 输出文件: ", 1)[1].splitlines()[0].strip())
             out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -163,6 +205,8 @@ def test_orchestrator_arbitration_resets_conflict_streak(tmp_path: Path, monkeyp
         dry_run=False,
         timeout_sec=1,
         codex_bin="codex",
+        model="gpt-5.4",
+        thinking_effort="medium",
         max_retry=0,
     )
     assert rc == 0
@@ -176,7 +220,19 @@ def test_orchestrator_dev_modifies_review_blocked(tmp_path: Path, monkeypatch) -
     plan_file = tmp_path / "task.md"
     plan_file.write_text("# task\n", encoding="utf-8")
 
-    def fake_run_stage(codex_bin, sandbox, prompt, stage_name, context_file, timeout_sec, max_retry, dry_run, cwd=None):  # type: ignore[no-untyped-def]
+    def fake_run_stage(
+        codex_bin,
+        sandbox,
+        prompt,
+        stage_name,
+        context_file,
+        timeout_sec,
+        max_retry,
+        dry_run,
+        model,
+        thinking_effort,
+        cwd=None,
+    ):  # type: ignore[no-untyped-def]
         autodev_dir = (tmp_path / ".autodev" / "task" / "context")
         review_file = autodev_dir / "task.review.md"
         if stage_name == "计划":
@@ -206,6 +262,8 @@ def test_orchestrator_dev_modifies_review_blocked(tmp_path: Path, monkeypatch) -
         dry_run=False,
         timeout_sec=1,
         codex_bin="codex",
+        model="gpt-5.4",
+        thinking_effort="medium",
         max_retry=0,
     )
     assert rc == 1
@@ -231,6 +289,8 @@ def test_orchestrator_worktree_dry_run(tmp_path: Path, monkeypatch) -> None:  # 
         dry_run=True,
         timeout_sec=1,
         codex_bin="codex",
+        model="gpt-5.4",
+        thinking_effort="medium",
         max_retry=0,
     )
     assert rc == 0
@@ -270,6 +330,8 @@ def test_orchestrator_source_plan_mutation_detected(tmp_path: Path, monkeypatch)
         dry_run=False,
         timeout_sec=1,
         codex_bin="python",
+        model="gpt-5.4",
+        thinking_effort="medium",
         max_retry=0,
     )
     assert called["n"] >= 1
@@ -295,6 +357,8 @@ def test_orchestrator_codex_bin_missing(tmp_path: Path, monkeypatch) -> None:  #
         dry_run=False,
         timeout_sec=1,
         codex_bin="codex",
+        model="gpt-5.4",
+        thinking_effort="medium",
         max_retry=0,
     )
     assert rc == 2
@@ -316,6 +380,8 @@ def test_orchestrator_plan_file_missing(tmp_path: Path) -> None:
         dry_run=True,
         timeout_sec=1,
         codex_bin="codex",
+        model="gpt-5.4",
+        thinking_effort="medium",
         max_retry=0,
     )
     assert rc == 2
@@ -337,3 +403,5 @@ def test_cli_invokes_run(monkeypatch, tmp_path: Path) -> None:  # type: ignore[n
     assert result.exit_code == 0
     assert captured["plan_file"] == plan_file
     assert captured["dry_run"] is True
+    assert captured["model"] == "gpt-5.4"
+    assert captured["thinking_effort"] == "medium"

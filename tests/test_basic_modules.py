@@ -126,9 +126,16 @@ def test_codex_io_utilities() -> None:
     assert thread_id == "th_1"
     assert last_message == "a"
 
-    cmd = codex_io.build_exec_base_cmd("codex", sandbox=False)
+    cmd = codex_io.build_exec_base_cmd(
+        "codex", sandbox=False, model="gpt-5.4", thinking_effort="medium"
+    )
     assert "--dangerously-bypass-approvals-and-sandbox" in cmd
-    cmd2 = codex_io.build_resume_cmd("codex", "th_1", sandbox=True)
+    assert "--model" in cmd
+    assert "gpt-5.4" in cmd
+    assert 'model_reasoning_effort="medium"' in cmd
+    cmd2 = codex_io.build_resume_cmd(
+        "codex", "th_1", sandbox=True, model="gpt-5.4", thinking_effort="medium"
+    )
     assert "resume" in cmd2 and "--full-auto" in cmd2
     assert "hello world" in codex_io.format_cmd(["echo"], "hello world")
 
@@ -215,8 +222,14 @@ def test_runner_stage_resume_and_exec(tmp_path: Path, monkeypatch: pytest.Monkey
     cfile = tmp_path / "c.json"
     cfile.write_text(json.dumps({"thread_id": "th_1"}), encoding="utf-8")
 
-    monkeypatch.setattr("autodev.runner.build_resume_cmd", lambda codex_bin, thread_id, sandbox: ["resume"])  # type: ignore[arg-type]
-    monkeypatch.setattr("autodev.runner.build_exec_base_cmd", lambda codex_bin, sandbox: ["exec"])  # type: ignore[arg-type]
+    monkeypatch.setattr(
+        "autodev.runner.build_resume_cmd",
+        lambda codex_bin, thread_id, sandbox, model, thinking_effort: ["resume"],
+    )  # type: ignore[arg-type]
+    monkeypatch.setattr(
+        "autodev.runner.build_exec_base_cmd",
+        lambda codex_bin, sandbox, model, thinking_effort: ["exec"],
+    )  # type: ignore[arg-type]
     monkeypatch.setattr(
         "autodev.runner.run_codex_with_retry",
         lambda cmd, prompt, timeout_sec, stage_name, max_retry, cwd=None: (
@@ -226,12 +239,36 @@ def test_runner_stage_resume_and_exec(tmp_path: Path, monkeypatch: pytest.Monkey
         ),
     )
 
-    rc, out, _ = run_stage("codex", False, "p", "阶段", cfile, 1, 0, dry_run=False, cwd=None)
+    rc, out, _ = run_stage(
+        "codex",
+        False,
+        "p",
+        "阶段",
+        cfile,
+        1,
+        0,
+        dry_run=False,
+        model="gpt-5.4",
+        thinking_effort="medium",
+        cwd=None,
+    )
     assert rc == 0
     assert out
     assert context.load_context(cfile) == "th_2"
 
-    rc2, out2, err2 = run_stage("codex", False, "p2", "阶段", cfile, 1, 0, dry_run=True, cwd=None)
+    rc2, out2, err2 = run_stage(
+        "codex",
+        False,
+        "p2",
+        "阶段",
+        cfile,
+        1,
+        0,
+        dry_run=True,
+        model="gpt-5.4",
+        thinking_effort="medium",
+        cwd=None,
+    )
     assert rc2 == 0
     assert out2 == ""
     assert err2 == ""

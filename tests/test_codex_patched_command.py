@@ -41,6 +41,8 @@ def test_run_stage_with_patched_codex_exec_and_resume(tmp_path: Path) -> None:
         timeout_sec=5,
         max_retry=0,
         dry_run=False,
+        model="gpt-5.4",
+        thinking_effort="medium",
         cwd=tmp_path,
     )
     assert rc == 0
@@ -57,6 +59,8 @@ def test_run_stage_with_patched_codex_exec_and_resume(tmp_path: Path) -> None:
         timeout_sec=5,
         max_retry=0,
         dry_run=False,
+        model="gpt-5.4",
+        thinking_effort="medium",
         cwd=tmp_path,
     )
     assert rc2 == 0
@@ -69,11 +73,29 @@ def test_run_stage_with_patched_codex_exec_and_resume(tmp_path: Path) -> None:
     second = json.loads(lines[1])
 
     # First run uses exec mode and bypass flag when sandbox=False.
-    assert first["argv"][:3] == ["exec", "--skip-git-repo-check", "--json"]
+    assert first["argv"][:7] == [
+        "exec",
+        "--skip-git-repo-check",
+        "--json",
+        "--model",
+        "gpt-5.4",
+        "-c",
+        'model_reasoning_effort="medium"',
+    ]
     assert "--dangerously-bypass-approvals-and-sandbox" in first["argv"]
     assert first["prompt"] == "PROMPT_EXEC"
 
     # Second run resumes previous thread and uses full-auto when sandbox=True.
-    assert second["argv"][:5] == ["exec", "resume", "th_test", "--skip-git-repo-check", "--json"]
+    assert second["argv"][:9] == [
+        "exec",
+        "resume",
+        "th_test",
+        "--skip-git-repo-check",
+        "--json",
+        "--model",
+        "gpt-5.4",
+        "-c",
+        'model_reasoning_effort="medium"',
+    ]
     assert "--full-auto" in second["argv"]
     assert second["prompt"] == "PROMPT_RESUME"

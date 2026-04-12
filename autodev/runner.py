@@ -25,16 +25,18 @@ def run_stage(
     timeout_sec: int,
     max_retry: int,
     dry_run: bool,
+    model: str,
+    thinking_effort: str,
     cwd: Path | None = None,
 ) -> tuple[int, str, str]:
     if context_file:
         thread_id = load_context(context_file)
         if thread_id:
-            cmd = build_resume_cmd(codex_bin, thread_id, sandbox)
+            cmd = build_resume_cmd(codex_bin, thread_id, sandbox, model, thinking_effort)
         else:
-            cmd = build_exec_base_cmd(codex_bin, sandbox)
+            cmd = build_exec_base_cmd(codex_bin, sandbox, model, thinking_effort)
     else:
-        cmd = build_exec_base_cmd(codex_bin, sandbox)
+        cmd = build_exec_base_cmd(codex_bin, sandbox, model, thinking_effort)
 
     if dry_run:
         logger.info("[执行器] 演练-{}: {}", stage_name, format_cmd(cmd, prompt))
